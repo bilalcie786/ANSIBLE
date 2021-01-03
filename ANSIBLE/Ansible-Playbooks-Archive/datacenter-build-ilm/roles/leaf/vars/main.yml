@@ -1,0 +1,19 @@
+
+---
+
+vlans: "2-20,99"
+native: 99
+
+named_leaf_vlans:
+  - { vlan_id: 10, name: ansible_test_segment_1 }
+  - { vlan_id: 20, name: ansible_test_segment_2 }
+  - { vlan_id: 99, name: native }
+
+uplink_interfaces:
+  - Ethernet2/1
+
+logical_interfaces_to_create:
+  - vlan10
+  - vlan20
+
+

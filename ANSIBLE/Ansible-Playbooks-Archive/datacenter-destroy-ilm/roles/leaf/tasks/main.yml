@@ -1,0 +1,41 @@
+---
+
+#############################################################
+# Layer 3 Configuration
+#############################################################
+
+- name: Clean logical vlan interfaces
+  nxos_interface: interface={{ item }} host={{ inventory_hostname }} state=absent
+  with_items: logical_interfaces_to_create
+
+#- name: assign IP addresses
+#  nxos_ipv4_interface: interface={{ item.interface }} ip_addr={{ item.ip }} mask={{ item.mask }} host={{ inventory_hostname }}
+#  with_items: layer3ip
+
+#############################################################
+# Layer 2 switchport configs
+#############################################################
+
+#- name: Clean L2 config for uplinks
+#  nxos_switchport: interface={{ item }} mode=trunk native_vlan=99 trunk_vlans=2-20 host={{ inventory_hostname }} state=absent
+#  with_items: uplink_interfaces
+
+- name: Clean Interface Configuration
+  nxos_interface: interface={{ item }} mode=layer2 state=absent host={{ inventory_hostname }}
+  with_items: uplink_interfaces
+
+############################################################
+#  VLAN CONFIGURATION
+############################################################
+- name: Clean VLANs on switches
+  nxos_vlan: vlan_id={{ vlans }} state=absent host={{ inventory_hostname }}
+
+#- name: ensure names exist for important vlans
+#  nxos_vlan: vlan_id={{ item.vlan_id }} name={{ item.name }} host={{ inventory_hostname }} state=present
+#  with_items: named_leaf_vlans
+
+############################################################
+#  Ensure Interface Vlan is enabled
+############################################################
+- name: Clean feature interface-vlan
+  nxos_feature: feature=interface-vlan state=disabled host={{ inventory_hostname }}

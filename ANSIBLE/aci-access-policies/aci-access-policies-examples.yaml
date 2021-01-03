@@ -1,0 +1,70 @@
+- name: Adding port 1/34 to access port selector MyPortSelector
+  aci_access_port_to_interface_policy_leaf_profile:
+    hostname: "{{ apic_hostname }}"
+    username: "{{ apic_username }}"
+    password: "{{ apic_password }}"
+    use_ssl: yes
+    validate_certs: no
+    access_port_selector: MyPortSelector
+    from: 34
+    to: 34
+    leaf_interface_profile: MyLeafProfile
+    policy_group: MyPolicyGroup
+    interface_type: port_channel
+    leaf_port_blk: 30534
+    description: Access Port Selector for policy-group MyPolicyGroup
+    leaf_port_blk_description: MyDescription
+    state: present
+    
+- name: Associate an access port block (port range) to an interface selector
+  aci_access_port_block_to_access_port:
+    host: apic
+    username: admin
+    password: SomeSecretPassword
+    leaf_interface_profile: leafintprfname
+    access_port_selector: accessportselectorname
+    leaf_port_blk: leafportblkname
+    from_port: 13
+    to_port: 16
+    state: present
+  delegate_to: localhost
+- name: Remove an access port block from an interface selector
+  aci_access_port_block_to_access_port:
+    host: apic
+    username: admin
+    password: SomeSecretPassword
+    leaf_interface_profile: leafintprfname
+    access_port_selector: accessportselectorname
+    leaf_port_blk: leafportblkname
+    from_port: 13
+    to_port: 13
+    state: absent
+  delegate_to: localhost
+- name: Query Specific access port block under given access port selector
+  aci_access_port_block_to_access_port:
+    host: apic
+    username: admin
+    password: SomeSecretPassword
+    leaf_interface_profile: leafintprfname
+    access_port_selector: accessportselectorname
+    leaf_port_blk: leafportblkname
+    state: query
+  delegate_to: localhost
+  register: query_result
+- name: Query all access port blocks under given leaf interface profile
+  aci_access_port_block_to_access_port:
+    host: apic
+    username: admin
+    password: SomeSecretPassword
+    leaf_interface_profile: leafintprfname
+    state: query
+  delegate_to: localhost
+  register: query_result
+- name: Query all access port blocks in the fabric
+  aci_access_port_block_to_access_port:
+    host: apic
+    username: admin
+    password: SomeSecretPassword
+    state: query
+  delegate_to: localhost
+  register: query_result

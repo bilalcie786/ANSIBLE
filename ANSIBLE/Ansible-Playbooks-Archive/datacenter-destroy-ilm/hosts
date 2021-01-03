@@ -1,0 +1,9 @@
+[all:vars]
+ansible_connection=local
+
+[spine]
+ilm-nxos-9508
+
+[leaf]
+ilm-nxos-vtep1
+ilm-nxos-vtep2

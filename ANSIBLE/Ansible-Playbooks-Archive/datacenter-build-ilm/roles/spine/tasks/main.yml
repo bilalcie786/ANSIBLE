@@ -1,0 +1,42 @@
+---
+
+############################################################
+#  Ensure Interface Vlan is enabled
+############################################################
+- name: Enable interface vlan feature
+  nxos_feature: feature=interface-vlan state=enabled host={{ inventory_hostname }}
+
+############################################################
+#  VLAN CONFIGURATION
+############################################################
+- name: Ensure VLANs exist on switches
+  nxos_vlan: vlan_id={{ vlans }} state=present host={{ inventory_hostname }}
+
+- name: Ensure names exist for important vlans
+  nxos_vlan: vlan_id={{ item.vlan_id }} name={{ item.name }} host={{ inventory_hostname }} state=present
+  with_items: named_spine_vlans
+
+#############################################################
+# Layer 2 Switchport Configs
+#############################################################
+
+- name: Interface Configuration
+  nxos_interface: interface={{ item }} mode=layer2 state=present host={{ inventory_hostname }}
+  with_items: default_trunk_interfaces
+
+- name: L2 config for trunk
+  nxos_switchport: interface={{ item }} mode=trunk native_vlan={{ native }} trunk_vlans={{ trunk_vlans }} host={{ inventory_hostname }}
+  with_items: default_trunk_interfaces
+
+
+#############################################################
+# Layer 3 Configuration
+#############################################################
+
+- name: Create logical interfaces
+  nxos_interface: interface={{ item }} host={{ inventory_hostname }}
+  with_items: logical_interfaces_to_create
+
+- name: Assign IP addresses
+  nxos_ipv4_interface: interface={{ item.interface }} ip_addr={{ item.ip }} mask={{ item.mask }} host={{ inventory_hostname }}
+  with_items: layer3ip

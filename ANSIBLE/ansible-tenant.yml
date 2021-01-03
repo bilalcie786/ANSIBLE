@@ -1,0 +1,153 @@
+---
+#Ansible ACI Play book to Automate ACI deployment
+#Author: Bilal Ashfaq
+#ansible-playbook -i /etc/ansible/inventory_hostname ansible-tenant.yml -v
+#Ansible ACI Modules - https://docs.ansible.com/ansible/2.4/list_of_network_modules.html#aci
+  - name: Configure Tenant Constructs
+    hosts: apic # uses a device/group defined in the inventory file
+    connection: local # Determine how to connect to the device
+    gather_facts: no
+    vars:
+      action: post
+      tenant_name: TN1_ANSIBLE
+      vrf_name: VRF1
+      mypass: C^rr0t3965
+      myusername: admin
+      apic: 198.19.254.60
+      bd:
+        name: BD1
+        #second digit is VLAN ID
+        ipa: 21.31.1.1
+        ipb: 21.32.2.1
+        mask: 24
+      #user VLANs 
+      vlans:
+        a: 3001
+        b: 3002
+    tasks:
+      - name: Add a new tenant
+        aci_tenant:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          description: Ansible Tenant
+          state: present
+      - name: Add a new VRF to a tenant
+        aci_vrf:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          vrf: "{{ vrf_name }}"
+          descr: Ansible VRF
+          policy_control_preference: unenforced
+          policy_control_direction: ingress
+          state: present
+      - name: Add a new Bridge Domain
+        aci_bd:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          state: present
+          tenant: "{{ tenant_name }}"
+          vrf: "{{ vrf_name }}"
+          bd: "{{ bd.name }}"
+          description: Ansible BD
+      - name: Add Bridge Domain Subnet
+        aci_bd_subnet:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          bd: "{{ bd.name }}"
+          scope: public
+          mask: "{{ bd.mask }}"
+          gateway: "{{ item }}"
+        with_items:
+           - "{{ bd.ipa }}"
+           - "{{ bd.ipb }}"
+      - name: Add a new AP
+        aci_ap:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          ap: AP1
+          description: Ansible AP
+          state: present
+      - name: Add a new EPGs
+        aci_epg:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          bd: "{{ bd.name }}"
+          ap: AP1
+          epg: "{{ item }}"
+        with_items:
+           - EPG1
+           - EPG2
+      - name: Bind EPGs to Domain
+        aci_epg_to_domain:
+          hostname: "{{ inventory_hostname }}"
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          tenant: "{{ tenant_name }}"
+          ap: AP1
+          state: present
+          domain_type: phys
+          domain: phys1
+          deploy_immediacy: immediate
+          resolution_immediacy: pre-provision
+          epg: "{{ item }}"
+        with_items:
+           - EPG1
+           - EPG2
+      - name: Configure Static Binding to EPG1
+        aci_rest:
+          hostname: '{{ inventory_hostname }}'
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          method: post
+          path: /api/node/mo/uni/tn-{{ tenant_name }}/ap-AP1/epg-EPG1.json
+          content: |
+            {
+              "fvRsPathAtt": {
+                "attributes": {
+                  "encap": "vlan-{{ vlans.a }}",
+                  "instrImedcy": "immediate",
+                  "tDn": "topology/pod-1/paths-101/pathep-[eth1/24]",
+                  "status": "created"
+                }
+              }
+            }
+        delegate_to: localhost
+      - name: Configure Static Binding to EPG2
+        aci_rest:
+          hostname: '{{ inventory_hostname }}'
+          username: "{{ myusername }}"
+          password: "{{ mypass }}"
+          validate_certs: no
+          method: post
+          path: /api/node/mo/uni/tn-{{ tenant_name }}/ap-AP1/epg-EPG2.json
+          content: |
+            {
+              "fvRsPathAtt": {
+                "attributes": {
+                  "encap": "vlan-{{ vlans.b }}",
+                  "instrImedcy": "immediate",
+                  "tDn": "topology/pod-1/paths-201/pathep-[eth1/25]",
+                  "status": "created"
+                }
+              }
+            }
+        delegate_to: localhost
